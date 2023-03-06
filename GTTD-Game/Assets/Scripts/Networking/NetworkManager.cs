@@ -1,10 +1,17 @@
 using Riptide;
 using Riptide.Utils;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
-namespace Vulf.Game.Networking
+namespace Vulf.GTTD.Networking
 {
+	public enum ServerToClientId : ushort
+	{
+		spawnPlayer,
+		playerPosition,
+	}
+
 	public enum ClientToServerId : ushort
 	{
 		clientInfo,
@@ -34,6 +41,7 @@ namespace Vulf.Game.Networking
 
 		// Client
 		public Client Client { get; private set; }
+		public Dictionary<ushort, Player> PlayerList { get; private set; }
 		#endregion
 
 		#region Settings
@@ -60,6 +68,7 @@ namespace Vulf.Game.Networking
 
 			// Create the client
 			Client = new Client();
+			PlayerList = new Dictionary<ushort, Player>();
 
 			// Subscribe client events
 			Client.Connected += OnConnected;
@@ -76,10 +85,13 @@ namespace Vulf.Game.Networking
 			Client.Update();
 
 			// Send the client's input packet
-
 		}
 
-		// Event subscribers
+		void OnApplicationQuit()
+		{
+			Client.Disconnect();
+		}
+
 		void OnConnected(object sender, EventArgs e)
 		{
 			// Send the player info to the server
@@ -107,6 +119,14 @@ namespace Vulf.Game.Networking
 
 			// Send the message
 			Client.Send(message);
+		}
+
+		[MessageHandler((ushort)ServerToClientId.spawnPlayer)]
+		static void SpawnPlayer(Message message)
+		{
+			ushort playerId = message.GetUShort();
+			
+			
 		}
 		#endregion
 	}
