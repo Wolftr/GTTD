@@ -1,47 +1,45 @@
 using Riptide;
 using Riptide.Utils;
 using System;
-using System.Collections.Generic;
 using UnityEngine;
+using Vulf.GTTD.Game;
+using Vulf.GTTD.Game.Player;
+using Vulf.GTTD.Input;
 
 namespace Vulf.GTTD.Networking
 {
 	public enum ServerToClientId : ushort
 	{
-		spawnPlayer,
-		playerPosition,
+		PlayerJoined = 0,
+		RoundStarted = 1,
+		PlayerPosition = 2,
 	}
 
 	public enum ClientToServerId : ushort
 	{
-		clientInfo,
-		input,
+		ClientInfo = 0,
+		Input = 1,
 	}
 
 	public class NetworkManager : MonoBehaviour
 	{
 		#region Properties
-		// Singleton
-		public static NetworkManager Instance 
+		public static NetworkManager Instance
 		{
 			get => instance;
-			private set
+			set
 			{
-				if (instance != null)
-				{
-					Debug.Log($"An instance of type {typeof(NetworkManager)} was created but one already exists! Destroying duplicate...");
-					Destroy(value);
-				}
-				else if (Instance != value)
-				{
+				if (instance == null)
 					instance = value;
+				else if (instance != value)
+				{
+					Debug.Log($"An instance of type {nameof(NetworkManager)} was created but one already exists! Destroying duplicate");
+					Destroy(value);
 				}
 			}
 		}
 
-		// Client
 		public Client Client { get; private set; }
-		public Dictionary<ushort, Player> PlayerList { get; private set; }
 		#endregion
 
 		#region Settings
@@ -50,14 +48,12 @@ namespace Vulf.GTTD.Networking
 		#endregion
 
 		#region Fields
-		// Singleton
-		private static NetworkManager instance;
+		static NetworkManager instance;
 		#endregion
 
 		#region Private Methods
 		void Awake()
 		{
-			// Set the singleton
 			Instance = this;
 		}
 
@@ -68,23 +64,21 @@ namespace Vulf.GTTD.Networking
 
 			// Create the client
 			Client = new Client();
-			PlayerList = new Dictionary<ushort, Player>();
 
-			// Subscribe client events
+			// Subscribe to client events
 			Client.Connected += OnConnected;
-			Client.Disconnected += OnDisconnect;
+			Client.Disconnected += OnDisconnected;
 			Client.ConnectionFailed += OnConnectionFailed;
+			Client.ClientDisconnected += OnClientDisconnected;
 
-			// Connect the client to the server
+			// Connect the client to the specified ip and port
 			Client.Connect($"{ip}:{port}");
 		}
 
 		void FixedUpdate()
 		{
-			// Update the client
 			Client.Update();
-
-			// Send the client's input packet
+			SendInputPacket();
 		}
 
 		void OnApplicationQuit()
@@ -94,11 +88,13 @@ namespace Vulf.GTTD.Networking
 
 		void OnConnected(object sender, EventArgs e)
 		{
-			// Send the player info to the server
-			SendPlayerInfo();
+			// Send client info to the server
+			Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.ClientInfo);
+			message.AddString("Username");
+			Client.Send(message);
 		}
 
-		void OnDisconnect(object sender, DisconnectedEventArgs e)
+		void OnDisconnected(object sender, DisconnectedEventArgs e)
 		{
 			
 		}
@@ -108,25 +104,46 @@ namespace Vulf.GTTD.Networking
 			
 		}
 
-		// Methods
-		void SendPlayerInfo()
+		void OnClientDisconnected(object sender, ClientDisconnectedEventArgs e)
 		{
-			// Create the player info message
-			Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.clientInfo);
-
-			// Add the player's info to the message
-			message.AddString("Username");
-
-			// Send the message
-			Client.Send(message);
+			GameManager.Instance.Lobby.RemovePlayer(e.Id);
 		}
 
-		[MessageHandler((ushort)ServerToClientId.spawnPlayer)]
-		static void SpawnPlayer(Message message)
+		void SendInputPacket()
 		{
-			ushort playerId = message.GetUShort();
-			
-			
+			Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.Input);
+			message.AddVector2(InputHandler.Instance.MovementAxis);
+			Client.Send(message);
+		}
+		#endregion
+
+		#region Message Handlers
+		[MessageHandler((ushort)ServerToClientId.PlayerJoined)]
+		static void HandlePlayerJoined(Message message)
+		{
+			ushort id = message.GetUShort();
+
+			PlayerInfo playerInfo = new PlayerInfo(id)
+			{
+				Username = message.GetString(),
+				IsLocal = (id == Instance.Client.Id),
+			};
+
+			GameManager.Instance.Lobby.AddPlayer(playerInfo);
+		}
+
+		[MessageHandler((ushort)ServerToClientId.RoundStarted)]
+		static void HandleRoundStart(Message message)
+		{
+			GameManager.Instance.StartRound();
+		}
+
+		[MessageHandler((ushort)ServerToClientId.PlayerPosition)]
+		static void UpdatePlayerPosition(Message message)
+		{
+			ushort id = message.GetUShort();
+
+			GameManager.Instance.Lobby.PlayerList[id].PlayerObject.transform.position = message.GetVector2();
 		}
 		#endregion
 	}

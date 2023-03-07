@@ -42,11 +42,12 @@ namespace Vulf.GTTD.Game.Player
 			// Get components from the player object
 			Rigidbody = GetComponent<Rigidbody2D>();
 			Collider = GetComponent<Collider2D>();
+			Input = new InputSource();
 		}
 
 		void Start()
 		{
-			Input = new InputSource();
+			
 		}
 
 		void FixedUpdate()

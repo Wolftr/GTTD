@@ -12,6 +12,7 @@ namespace Vulf.GTTD.Game
 
 		#region Fields
 		GameObject playerPrefab;
+		GameObject localPlayerPrefab;
 		#endregion
 
 		#region Constructor
@@ -22,6 +23,7 @@ namespace Vulf.GTTD.Game
 
 			// Load the player prefab from resources
 			playerPrefab = Resources.Load<GameObject>("Prefabs/Player/Player");
+			localPlayerPrefab = Resources.Load<GameObject>("Prefabs/Player/Local Player");
 		}
 		#endregion
 
@@ -43,10 +45,12 @@ namespace Vulf.GTTD.Game
 
 		public void CreatePlayerObject(ushort id)
 		{
-			PlayerList[id].PlayerObject = Object.Instantiate(playerPrefab);
+			if (PlayerList[id].IsLocal)
+				PlayerList[id].PlayerObject = Object.Instantiate(localPlayerPrefab);
+			else
+				PlayerList[id].PlayerObject = Object.Instantiate(playerPrefab);
+
 			PlayerList[id].PlayerObject.name = $"{PlayerList[id].Username} ({id})";
-			PlayerList[id].PlayerController = PlayerList[id].PlayerObject.GetComponent<PlayerController>();
-			PlayerList[id].IsReady = true;
 		}
 
 		public void CreatePlayerObjects()

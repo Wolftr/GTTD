@@ -1,5 +1,4 @@
 using UnityEngine;
-using Vulf.GTTD.Game.Input;
 
 namespace Vulf.GTTD.Game.Player
 {
@@ -7,11 +6,9 @@ namespace Vulf.GTTD.Game.Player
 	{
 		public ushort Id { get; private set; }
 		public string Username { get; set; }
+		public bool IsLocal { get; set; }
 
 		public GameObject PlayerObject { get; set; }
-		public PlayerController PlayerController { get; set; }
-		public InputSource InputSource => PlayerController.Input;
-		public bool IsReady { get; set; }
 
 		public PlayerInfo(ushort id)
 		{

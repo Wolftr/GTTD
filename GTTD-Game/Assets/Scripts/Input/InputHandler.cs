@@ -9,32 +9,39 @@ namespace Vulf.GTTD.Input
 	public class InputHandler : MonoBehaviour
 	{
 		#region Properties
-		public static InputHandler Instance { get; private set; }
+		public static InputHandler Instance
+		{
+			get => instance;
+			set
+			{
+				if (instance == null)
+					instance = value;
+				else if (instance != value)
+				{
+					Debug.Log($"An instance of type {nameof(InputHandler)} was created but one already exists! Destroying duplicate");
+					Destroy(value);
+				}
+			}
+		}
+
+		// Map
 		private InputMap InputMap { get; set; }
+
+		// Input
+		public Vector2 MovementAxis => InputMap.Gameplay.MovementAxis.ReadValue<Vector2>();
+		#endregion
+
+		#region Fields
+		static InputHandler instance;
 		#endregion
 
 		#region Private Methods
 		void Awake()
 		{
-			// Initialize the singleton
-			if (Instance != null && Instance != this)
-			{
-				Debug.Log($"An instance of type {typeof(InputHandler)} was created but one already exists. Destroying duplicate!");
-				Destroy(this);
-				return;
-			}
-			else
-			{
-				Instance = this;
-			}
+			Instance = this;
 
 			// Create the input map and player input
 			InputMap = new InputMap();
-		}
-
-		void FixedUpdate()
-		{
-			SendInputPacket();
 		}
 
 		void OnEnable()
@@ -47,17 +54,6 @@ namespace Vulf.GTTD.Input
 		{
 			// Disable the input map
 			InputMap.Disable();
-		}
-
-		void SendInputPacket()
-		{
-			Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.input);
-
-			Vector2 movementAxis = InputMap.Gameplay.MovementAxis.ReadValue<Vector2>();
-
-			message.AddVector2(movementAxis);
-
-			NetworkManager.Instance.Client.Send(message);
 		}
 		#endregion
 	}
