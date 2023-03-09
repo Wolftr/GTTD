@@ -11,8 +11,9 @@ namespace Vulf.GTTD.Networking
 	public enum ServerToClientId : ushort
 	{
 		PlayerJoined = 0,
-		RoundStarted = 1,
-		PlayerPosition = 2,
+		GameStarted = 1,
+		PlayerStateToIndividual = 2,
+		PlayerStateToAll = 3,
 	}
 
 	public enum ClientToServerId : ushort
@@ -78,7 +79,9 @@ namespace Vulf.GTTD.Networking
 		void FixedUpdate()
 		{
 			Client.Update();
-			SendInputPacket();
+
+			if (GameManager.Instance.GameStarted)
+				SendInputPacket();
 		}
 
 		void OnApplicationQuit()
@@ -113,6 +116,9 @@ namespace Vulf.GTTD.Networking
 		{
 			Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.Input);
 			message.AddVector2(InputHandler.Instance.MovementAxis);
+			message.AddVector2(InputHandler.Instance.AimDirection);
+			message.AddBool(InputHandler.Instance.FirePressed);
+			message.AddBool(InputHandler.Instance.ReloadPressed);
 			Client.Send(message);
 		}
 		#endregion
@@ -132,17 +138,23 @@ namespace Vulf.GTTD.Networking
 			GameManager.Instance.Lobby.AddPlayer(playerInfo);
 		}
 
-		[MessageHandler((ushort)ServerToClientId.RoundStarted)]
+		[MessageHandler((ushort)ServerToClientId.GameStarted)]
 		static void HandleRoundStart(Message message)
 		{
 			GameManager.Instance.StartRound();
 		}
 
-		[MessageHandler((ushort)ServerToClientId.PlayerPosition)]
-		static void UpdatePlayerPosition(Message message)
+		[MessageHandler((ushort)ServerToClientId.PlayerStateToIndividual)]
+		static void UpdateIndividualPlayerStates(Message message)
+		{
+			GameManager.Instance.Lobby.LocalPlayer.HP = message.GetUShort();
+			GameManager.Instance.Lobby.LocalPlayer.CurrentAmmo = message.GetUShort();
+		}
+
+		[MessageHandler((ushort)ServerToClientId.PlayerStateToAll)]
+		static void UpdateAllPlayerStates(Message message)
 		{
 			ushort id = message.GetUShort();
-
 			GameManager.Instance.Lobby.PlayerList[id].PlayerObject.transform.position = message.GetVector2();
 		}
 		#endregion

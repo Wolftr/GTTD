@@ -13,7 +13,8 @@ namespace Vulf.GTTD.Networking
 	{
 		PlayerJoined = 0,
 		GameStarted = 1,
-		PlayerPosition = 2,
+		PlayerStateToIndividual = 2,
+		PlayerStateToAll = 3,
 	}
 
 	public enum ClientToServerId : ushort
@@ -41,6 +42,8 @@ namespace Vulf.GTTD.Networking
 		}
 
 		public Server Server { get; private set; }
+
+		public int ServerTick { get; private set; }
 		#endregion
 
 		#region Fields
@@ -74,6 +77,8 @@ namespace Vulf.GTTD.Networking
 
 		void FixedUpdate()
 		{
+			ServerTick++;
+
 			// Update the server every tick
 			Server.Update();
 
@@ -94,10 +99,17 @@ namespace Vulf.GTTD.Networking
 
 			foreach (PlayerInfo playerInfo in GameManager.Instance.Lobby.PlayerList.Values)
 			{
-				Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.PlayerPosition);
-				message.AddUShort(playerInfo.Id);
-				message.AddVector2(playerInfo.PlayerObject.transform.position);
-				Instance.Server.SendToAll(message);
+				// To individual
+				Message toIndividual = Message.Create(MessageSendMode.Unreliable, ServerToClientId.PlayerStateToIndividual);
+				toIndividual.AddUShort((ushort)playerInfo.PlayerController.Health);
+				toIndividual.AddUShort((ushort)playerInfo.PlayerController.CurrentAmmo);
+				Instance.Server.Send(toIndividual, playerInfo.Id);
+
+				// To all
+				Message toAll = Message.Create(MessageSendMode.Unreliable, ServerToClientId.PlayerStateToAll);
+				toAll.AddUShort(playerInfo.Id);
+				toAll.AddVector2(playerInfo.PlayerObject.transform.position);
+				Instance.Server.SendToAll(toAll);
 			}
 		}
 		#endregion
@@ -164,6 +176,9 @@ namespace Vulf.GTTD.Networking
 
 			InputSource clientInput = GameManager.Instance.Lobby.PlayerList[fromClientId].InputSource;
 			clientInput.MovementAxis = message.GetVector2();
+			clientInput.AimDirection = message.GetVector2();
+			clientInput.FirePressed = message.GetBool();
+			clientInput.ReloadPressed = message.GetBool();
 		}
 		#endregion
 	}

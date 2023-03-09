@@ -8,6 +8,10 @@ namespace Vulf.GTTD.Game.Player
 		public string Username { get; set; }
 		public bool IsLocal { get; set; }
 
+		// States
+		public int HP { get; set; }
+		public int CurrentAmmo { get; set; }
+
 		public GameObject PlayerObject { get; set; }
 
 		public PlayerInfo(ushort id)

@@ -8,11 +8,14 @@ namespace Vulf.GTTD.Game
 	{
 		#region Properties
 		public Dictionary<ushort, PlayerInfo> PlayerList { get; private set; }
+
+		public ushort LocalPlayerID { get; private set; }
+		public PlayerInfo LocalPlayer => PlayerList[LocalPlayerID];
 		#endregion
 
 		#region Fields
-		GameObject playerPrefab;
-		GameObject localPlayerPrefab;
+		readonly GameObject playerPrefab;
+		readonly GameObject localPlayerPrefab;
 		#endregion
 
 		#region Constructor
@@ -30,6 +33,9 @@ namespace Vulf.GTTD.Game
 		#region Public Methods
 		public bool AddPlayer(PlayerInfo info)
 		{
+			if (info.IsLocal)
+				LocalPlayerID = info.Id;
+
 			return PlayerList.TryAdd(info.Id, info);
 		}
 
@@ -55,8 +61,8 @@ namespace Vulf.GTTD.Game
 
 		public void CreatePlayerObjects()
 		{
-			foreach (KeyValuePair<ushort, PlayerInfo> player in PlayerList)
-				CreatePlayerObject(player.Key);
+			foreach (ushort player in PlayerList.Keys)
+				CreatePlayerObject(player);
 		}
 		#endregion
 	}

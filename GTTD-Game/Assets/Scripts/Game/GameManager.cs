@@ -1,5 +1,6 @@
 using Riptide;
 using UnityEngine;
+using Vulf.GTTD.Input;
 
 namespace Vulf.GTTD.Game
 {
@@ -22,6 +23,8 @@ namespace Vulf.GTTD.Game
 		}
 
 		public Lobby Lobby { get; private set; }
+
+		public bool GameStarted { get; private set; }
 		#endregion
 
 		#region Field
@@ -38,11 +41,17 @@ namespace Vulf.GTTD.Game
 		{
 			Lobby = new Lobby();
 		}
+
+		void FixedUpdate()
+		{
+			
+		}
 		#endregion
 
 		#region Public Methods
 		public void StartRound()
 		{
+			GameStarted = true;
 			Lobby.CreatePlayerObjects();
 		}
 		#endregion
